@@ -2,7 +2,6 @@
 
 @section('content')
 
-<!-- ここにページ毎のコンテンツを書く -->
     @if (count($tasks) > 0)
         <table class="table table-striped">
             <thead>

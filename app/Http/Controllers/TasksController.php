@@ -8,14 +8,20 @@ use App\Task;    // 追加
 
 class TasksController extends Controller
 {
-    // getでtasks/にアクセスされた場合の「一覧表示処理」
     public function index()
     {
-        $tasks = Task::all();
-
-        return view('tasks.index', [
-            'tasks' => $tasks,
-        ]);
+        $data = [];
+        if (\Auth::check()) {
+            $user = \Auth::user();
+            $tasks = $user->tasks()->orderBy('created_at', 'desc')->paginate(10);
+            
+            $data = [
+                'user' => $user,
+                'tasks' => $tasks,
+            ];
+        }
+        
+        return view('welcome', $data);
     }
 
     // getでtasks/createにアクセスされた場合の「新規登録画面表示処理」
@@ -36,10 +42,10 @@ class TasksController extends Controller
             'content' => 'required|max:191',
         ]);
         
-        $task = new Task;
-        $task->status = $request->status;
-        $task->content = $request->content;
-        $task->save();
+        $request->user()->tasks()->create([
+            'status' => $request->status,
+            'content' => $request->content,
+        ]);
 
         return redirect('/');
     }
@@ -48,10 +54,15 @@ class TasksController extends Controller
     public function show($id)
     {
         $task = Task::find($id);
+        
+        if (\Auth::id() !== $task->user_id) {
+            return redirect('/');
+        }
 
         return view('tasks.show', [
             'task' => $task,
         ]);
+        
     }
 
     // getでtasks/id/editにアクセスされた場合の「更新画面表示処理」
@@ -83,9 +94,13 @@ class TasksController extends Controller
     // deleteでtasks/idにアクセスされた場合の「削除処理」
     public function destroy($id)
     {
-        $task = Task::find($id);
-        $task->delete();
+        $task = \App\Task::find($id);
+
+        if (\Auth::id() === $task->user_id) {
+            $task->delete();
+        }
         
         return redirect('/');
     }
+    
 }
